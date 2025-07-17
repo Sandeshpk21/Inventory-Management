@@ -114,13 +114,13 @@ export default function Transactions() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.purchase_order_id && (
-                        <span className="text-blue-600">PO #{transaction.purchase_order_id}</span>
+                      {transaction.purchase_order && (
+                        <span className="text-blue-600">PO {transaction.purchase_order.po_number}</span>
                       )}
-                      {transaction.requirement_id && (
-                        <span className="text-green-600">Project #{transaction.requirement_id}</span>
+                      {transaction.requirement && (
+                        <span className="text-green-600">{transaction.requirement.project_name}</span>
                       )}
-                      {!transaction.purchase_order_id && !transaction.requirement_id && (
+                      {!transaction.purchase_order && !transaction.requirement && (
                         <span className="text-gray-500">Manual</span>
                       )}
                     </td>

@@ -1,14 +1,21 @@
-import axios from 'axios'
-
-// const API_BASE_URL = 'http://localhost:8000'
-const API_BASE_URL = 'http://10.179.21.162:8000'
+import axios from 'axios';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
+  baseURL: 'http://10.179.21.162:8000', // Adjust if your backend runs on a different port
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
   },
-})
+  (error) => Promise.reject(error)
+);
+
+export default api;
 
 // Purchase Orders
 export const purchaseOrdersAPI = {
@@ -40,6 +47,16 @@ export const stockAPI = {
   getItems: () => api.get('/stock/items'),
   createItem: (data) => api.post('/stock/items', data),
   updateItem: (id, data) => api.put(`/stock/items/${id}`, data),
+  importCSV: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/stock/import-csv', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+  exportCSV: () => api.get('/stock/export-csv'),
 }
 
 // Transactions
@@ -47,6 +64,4 @@ export const transactionsAPI = {
   getAll: () => api.get('/transactions/'),
   getDashboard: () => api.get('/transactions/dashboard'),
   getToBeOrdered: () => api.get('/transactions/to-be-ordered'),
-}
-
-export default api 
+} 

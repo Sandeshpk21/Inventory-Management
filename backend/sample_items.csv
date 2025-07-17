@@ -1,0 +1,11 @@
+name,code,description,unit_price,minimum_stock,current_quantity
+Circuit Breaker 32A,CB32A,32 Amp circuit breaker for electrical panels,450.00,10,25
+MCB 16A,MCB16A,16 Amp miniature circuit breaker,280.00,15,30
+Contact Relay 24V,CR24V,24V DC contact relay for automation,120.00,20,45
+Push Button Red,PBRED,Red emergency stop push button,85.00,8,12
+Indicator Light Green,ILGREEN,Green indicator light 24V,65.00,12,18
+Terminal Block 12P,TB12P,12-pole terminal block for wiring,95.00,6,10
+Cable 2.5mm,CB25MM,2.5mm² electrical cable per meter,45.00,50,100
+Fuse 10A,FUSE10A,10 Amp fuse for protection,25.00,25,40
+Switch Disconnector,SWDISC,Main switch disconnector 63A,850.00,5,8
+PLC Module,PLCMOD,Programmable logic controller module,2500.00,3,5 

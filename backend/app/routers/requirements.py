@@ -5,6 +5,8 @@ from ..database import get_db
 from .. import crud, schemas
 from ..models import RequirementItem, Stock, Transaction
 from ..models import Requirement
+from fastapi import Depends
+from ..dependencies import require_role
 
 router = APIRouter(prefix="/requirements", tags=["requirements"])
 

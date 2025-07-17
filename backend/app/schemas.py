@@ -8,8 +8,21 @@ class UserBase(BaseModel):
     email: str
     is_admin: bool = False
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    username: str
     password: str
+    role: str  # 'admin' or 'employee'
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    role: str
+    class Config:
+        from_attributes = True
 
 class User(UserBase):
     id: int
@@ -180,6 +193,8 @@ class Transaction(TransactionBase):
     id: int
     created_at: datetime
     item: Item
+    purchase_order: Optional[PurchaseOrder] = None
+    requirement: Optional[Requirement] = None
     
     class Config:
         from_attributes = True

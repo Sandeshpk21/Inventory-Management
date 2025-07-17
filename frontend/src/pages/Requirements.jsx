@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { requirementsAPI, stockAPI } from '../services/api'
 import { Plus, ClipboardList, CheckCircle, Clock, Eye, Package } from 'lucide-react'
 import { format } from 'date-fns'
+import { AuthContext } from '../services/AuthContext'
 
 export default function Requirements() {
+  const { user } = useContext(AuthContext);
   const [requirements, setRequirements] = useState([])
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -146,13 +148,15 @@ export default function Requirements() {
           <h1 className="text-2xl font-bold text-gray-900">Requirements</h1>
           <p className="text-gray-600">Manage project requirements and issue items</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Create Requirement
-        </button>
+        {user?.role === 'admin' && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary flex items-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Requirement
+          </button>
+        )}
       </div>
 
       {successMsg && <div className="text-green-600 font-medium">{successMsg}</div>}
@@ -255,7 +259,7 @@ export default function Requirements() {
       </div>
 
       {/* Create Requirement Modal */}
-      {showCreateModal && (
+      {user?.role === 'admin' && showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">

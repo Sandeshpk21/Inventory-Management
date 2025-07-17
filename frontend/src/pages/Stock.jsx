@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useContext } from 'react'
 import { stockAPI } from '../services/api'
-import { Plus, Database, AlertTriangle, CheckCircle, Search } from 'lucide-react'
+import { Plus, Database, AlertTriangle, CheckCircle, Search, Upload, Download } from 'lucide-react'
+import { AuthContext } from '../services/AuthContext'
 
 export default function Stock() {
+  const { user } = useContext(AuthContext);
   const [stock, setStock] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -17,6 +19,11 @@ export default function Stock() {
   })
   const [updateQuantity, setUpdateQuantity] = useState(0)
   const [search, setSearch] = useState('')
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importResults, setImportResults] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     fetchStock()
@@ -64,6 +71,65 @@ export default function Stock() {
     }
   }
 
+  const handleImportCSV = async (e) => {
+    e.preventDefault()
+    const file = fileInputRef.current.files[0]
+    
+    if (!file) {
+      alert('Please select a CSV file')
+      return
+    }
+    
+    if (!file.name.endsWith('.csv')) {
+      alert('Please select a valid CSV file')
+      return
+    }
+    
+    setImporting(true)
+    try {
+      const response = await stockAPI.importCSV(file)
+      setImportResults(response.data)
+      fetchStock() // Refresh the stock list
+    } catch (error) {
+      console.error('Error importing CSV:', error)
+      alert('Failed to import CSV: ' + (error?.response?.data?.detail || 'Unknown error'))
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try {
+      const response = await stockAPI.exportCSV()
+      const { csv_content, filename } = response.data
+      
+      // Create and download the file
+      const blob = new Blob([csv_content], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error exporting CSV:', error)
+      alert('Failed to export CSV: ' + (error?.response?.data?.detail || 'Unknown error'))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const resetImportModal = () => {
+    setShowImportModal(false)
+    setImportResults(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   const getStockStatus = (stockItem) => {
     if (stockItem.current_quantity <= 0) {
       return { status: 'Out of Stock', color: 'bg-red-100 text-red-800', icon: AlertTriangle }
@@ -104,13 +170,32 @@ export default function Stock() {
           <h1 className="text-2xl font-bold text-gray-900">Stock Management</h1>
           <p className="text-gray-600">Manage inventory items and stock levels</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Item
-        </button>
+        {user?.role === 'admin' && (
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="btn-secondary flex items-center"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </button>
+            <button
+              onClick={handleExportCSV}
+              disabled={exporting}
+              className="btn-secondary flex items-center"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {exporting ? 'Exporting...' : 'Export CSV'}
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn-primary flex items-center"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Item
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search bar */}
@@ -194,16 +279,18 @@ export default function Stock() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedStock(stockItem)
-                            setUpdateQuantity(stockItem.current_quantity)
-                            setShowUpdateModal(true)
-                          }}
-                          className="text-primary-600 hover:text-primary-900"
-                        >
-                          Update Stock
-                        </button>
+                        {user?.role === 'admin' && (
+                          <button
+                            onClick={() => {
+                              setSelectedStock(stockItem)
+                              setUpdateQuantity(stockItem.current_quantity)
+                              setShowUpdateModal(true)
+                            }}
+                            className="text-primary-600 hover:text-primary-900"
+                          >
+                            Update Stock
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )
@@ -215,7 +302,7 @@ export default function Stock() {
       </div>
 
       {/* Create Item Modal */}
-      {showCreateModal && (
+      {user?.role === 'admin' && showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
@@ -291,7 +378,7 @@ export default function Stock() {
       )}
 
       {/* Update Stock Modal */}
-      {showUpdateModal && selectedStock && (
+      {user?.role === 'admin' && showUpdateModal && selectedStock && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
@@ -330,6 +417,110 @@ export default function Stock() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {user?.role === 'admin' && showImportModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Import Items from CSV</h3>
+              
+              {!importResults ? (
+                <div>
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-2">CSV Format Requirements:</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• <strong>Required columns:</strong> name, code</li>
+                      <li>• <strong>Optional columns:</strong> description, unit_price, minimum_stock, current_quantity</li>
+                      <li>• <strong>Example:</strong> name,code,description,unit_price,minimum_stock,current_quantity</li>
+                      <li>• <strong>Note:</strong> Item codes must be unique</li>
+                    </ul>
+                  </div>
+                  
+                  <form onSubmit={handleImportCSV} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Select CSV File</label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv"
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="flex space-x-3">
+                      <button
+                        type="submit"
+                        disabled={importing}
+                        className="btn-primary flex-1"
+                      >
+                        {importing ? 'Importing...' : 'Import CSV'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetImportModal}
+                        className="btn-secondary flex-1"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <div>
+                  <div className={`p-4 rounded-lg mb-4 ${
+                    importResults.results.failed === 0 
+                      ? 'bg-green-50 border border-green-200' 
+                      : 'bg-yellow-50 border border-yellow-200'
+                  }`}>
+                    <h4 className={`font-medium mb-2 ${
+                      importResults.results.failed === 0 ? 'text-green-900' : 'text-yellow-900'
+                    }`}>
+                      {importResults.message}
+                    </h4>
+                    <div className="text-sm space-y-1">
+                      <p>✅ Successfully imported: {importResults.results.successful}</p>
+                      <p>❌ Failed to import: {importResults.results.failed}</p>
+                    </div>
+                  </div>
+                  
+                  {importResults.results.errors.length > 0 && (
+                    <div className="mb-4">
+                      <h5 className="font-medium text-gray-900 mb-2">Errors:</h5>
+                      <div className="max-h-40 overflow-y-auto bg-red-50 border border-red-200 rounded-lg p-3">
+                        {importResults.results.errors.map((error, index) => (
+                          <div key={index} className="text-sm text-red-800 mb-1">
+                            {error}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={resetImportModal}
+                      className="btn-primary flex-1"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={() => {
+                        resetImportModal()
+                        setShowImportModal(true)
+                      }}
+                      className="btn-secondary flex-1"
+                    >
+                      Import Another File
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

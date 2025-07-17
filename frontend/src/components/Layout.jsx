@@ -1,113 +1,57 @@
-import { Link, useLocation } from 'react-router-dom'
-import { 
-  Home, 
-  Package, 
-  ClipboardList, 
-  AlertTriangle, 
-  Database, 
-  Activity,
-  Menu,
-  X
-} from 'lucide-react'
-import { useState } from 'react'
+import React, { useContext } from 'react';
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { AuthContext } from '../services/AuthContext';
 
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Purchase Orders', href: '/purchase-orders', icon: Package },
-  { name: 'Requirements', href: '/requirements', icon: ClipboardList },
-  { name: 'To-Be-Ordered', href: '/to-be-ordered', icon: AlertTriangle },
-  { name: 'Stock', href: '/stock', icon: Database },
-  { name: 'Transactions', href: '/transactions', icon: Activity },
-]
+const navLinks = [
+  { to: '/', label: 'Dashboard', roles: ['admin'] },
+  { to: '/requirements', label: 'Requirements', roles: ['admin', 'employee'] },
+  { to: '/stock', label: 'Stock', roles: ['admin', 'employee'] },
+  { to: '/purchase-orders', label: 'Purchase Orders', roles: ['admin'] },
+  { to: '/to-be-ordered', label: 'To Be Ordered', roles: ['admin'] },
+  { to: '/transactions', label: 'Transactions', roles: ['admin'] },
+];
 
-export default function Layout({ children }) {
-  const location = useLocation()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+const Layout = () => {
+  const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-16 items-center justify-between px-4">
-            <h1 className="text-xl font-bold text-gray-900">Inventory System</h1>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X size={24} />
-            </button>
-          </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon
-                    className={`mr-3 h-5 w-5 ${
-                      isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                    }`}
-                  />
-                  {item.name}
-                </Link>
-              )
-            })}
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <aside className="fixed top-0 left-0 h-screen w-64 bg-blue-800 text-white flex flex-col justify-between py-6 px-4 z-20">
+        <div>
+          <div className="block text-2xl font-bold mb-8 text-center">Inventory System</div>
+          <nav className="flex flex-col gap-2">
+            {navLinks.filter(link => link.roles.includes(user?.role)).map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`px-4 py-2 rounded hover:bg-blue-700 transition-colors ${location.pathname === link.to || (link.to !== '/' && location.pathname.startsWith(link.to)) ? 'bg-blue-900 font-semibold' : ''}`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
-      </div>
-
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4">
-            <h1 className="text-xl font-bold text-gray-900">Inventory System</h1>
-          </div>
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <item.icon
-                    className={`mr-3 h-5 w-5 ${
-                      isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                    }`}
-                  />
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
+        <div className="flex flex-col items-center gap-2 mt-8">
+          {user && (
+            <span className="text-sm mb-2">{user.username} ({user.role})</span>
+          )}
+          <button onClick={handleLogout} className="w-full bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
         </div>
-      </div>
-
-      {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Removed the top bar here */}
-        {/* Page content */}
-        <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {children}
-          </div>
-        </main>
-      </div>
+      </aside>
+      {/* Main Content */}
+      <main className="flex-1 p-8 ml-64 overflow-x-auto">
+        <Outlet />
+      </main>
     </div>
-  )
-} 
+  );
+};
+
+export default Layout; 

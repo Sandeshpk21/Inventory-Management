@@ -80,7 +80,7 @@ export default function Dashboard() {
       description: 'Need attention'
     },
     {
-      title: 'Active Projects',
+      title: 'Active Requirements',
       value: dashboardData.active_projects,
       icon: ClipboardList,
       color: 'bg-gradient-to-br from-green-500 to-green-600',
