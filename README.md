@@ -256,6 +256,3 @@ This project is licensed under the MIT License.
 ## 🆘 Support
 
 For support and questions, please open an issue in the repository. 
-=======
-# Inventory-Management
->>>>>>> 41a018963cd78129c38774bf86a1f95afd5930b6
