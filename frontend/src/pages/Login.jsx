@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../services/AuthContext';
 import api from '../services/api';
+import { Box } from 'lucide-react';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -21,16 +22,28 @@ const Login = () => {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
       login(response.data);
-      navigate('/');
+      const role = response.data.user.role;
+      if (role === 'employee') {
+        navigate('/requirements');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError('Invalid username or password');
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-80">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
+      <div className="flex flex-col items-center mb-10">
+        <span className="bg-blue-100 p-4 rounded-full shadow-md mb-4">
+          <Box className="h-10 w-10 text-blue-600" />
+        </span>
+        <h1 className="text-3xl font-extrabold text-gray-800 mb-2 tracking-tight">Welcome to Inventory Management</h1>
+        <p className="text-gray-500 text-lg text-center max-w-md">Effortlessly manage your stock, requirements, and orders. Please log in to continue.</p>
+      </div>
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-2xl w-80 border border-blue-100">
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">Login</h2>
         {error && <div className="mb-4 text-red-500 text-center">{error}</div>}
         <div className="mb-4">
           <label className="block mb-1">Username</label>
@@ -52,7 +65,7 @@ const Login = () => {
             required
           />
         </div>
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-semibold shadow">Login</button>
       </form>
     </div>
   );
