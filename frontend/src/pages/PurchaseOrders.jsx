@@ -22,6 +22,7 @@ export default function PurchaseOrders() {
     items: [{ item_id: '', quantity: 1, unit_price: 0 }]
   })
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [showPartialReceiveModal, setShowPartialReceiveModal] = useState(false)
   const [poToReceive, setPoToReceive] = useState(null)
   const [invoices, setInvoices] = useState([{
     invoice_number: '',
@@ -29,6 +30,7 @@ export default function PurchaseOrders() {
     amount: 0,
     description: ''
   }])
+  const [partialReceiveItems, setPartialReceiveItems] = useState([])
 
   useEffect(() => {
     fetchPurchaseOrders()
@@ -82,6 +84,33 @@ export default function PurchaseOrders() {
     setShowInvoiceModal(true)
   }
 
+  const handlePartialReceivePO = async (poId) => {
+    setPoToReceive(poId)
+    setInvoices([{
+      invoice_number: '',
+      invoice_date: new Date().toISOString().slice(0, 16),
+      amount: 0,
+      description: ''
+    }])
+    
+    // Initialize partial receive items with the PO items
+    const po = purchaseOrders.find(po => po.id === poId)
+    if (po) {
+      const items = po.items.map(item => ({
+        item_id: item.item_id,
+        item_name: item.item.name,
+        ordered_quantity: item.quantity,
+        received_quantity: item.received_quantity || 0,
+        remaining_quantity: item.quantity - (item.received_quantity || 0),
+        quantity: 0, // This will be the quantity to receive
+        error: null // Initialize with no error
+      }))
+      setPartialReceiveItems(items)
+    }
+    
+    setShowPartialReceiveModal(true)
+  }
+
   const confirmReceivePO = async () => {
     try {
       // Filter out empty invoices
@@ -98,6 +127,45 @@ export default function PurchaseOrders() {
       fetchPurchaseOrders()
     } catch (error) {
       alert('Failed to receive PO: ' + (error?.response?.data?.detail || 'Unknown error'))
+    }
+  }
+
+  const confirmPartialReceivePO = async () => {
+    try {
+      // Check for validation errors
+      const itemsWithErrors = partialReceiveItems.filter(item => item.error)
+      if (itemsWithErrors.length > 0) {
+        alert('Please fix the validation errors before proceeding.')
+        return
+      }
+      
+      // Filter out empty invoices
+      const validInvoices = invoices.filter(inv => inv.invoice_number.trim() !== '')
+      // Filter out items with zero quantity
+      const validItems = partialReceiveItems.filter(item => item.quantity > 0)
+      
+      if (validItems.length === 0) {
+        alert('Please enter quantities to receive for at least one item.')
+        return
+      }
+      
+      await purchaseOrdersAPI.receivePartial(poToReceive, {
+        items: validItems,
+        invoices: validInvoices
+      })
+      
+      setShowPartialReceiveModal(false)
+      setPoToReceive(null)
+      setPartialReceiveItems([])
+      setInvoices([{
+        invoice_number: '',
+        invoice_date: new Date().toISOString().slice(0, 16),
+        amount: 0,
+        description: ''
+      }])
+      fetchPurchaseOrders()
+    } catch (error) {
+      alert('Failed to receive partial PO: ' + (error?.response?.data?.detail || 'Unknown error'))
     }
   }
 
@@ -141,6 +209,22 @@ export default function PurchaseOrders() {
         i === index ? { ...item, [field]: value } : item
       )
     }))
+  }
+
+  const updatePartialReceiveItem = (index, quantity) => {
+    const newItems = [...partialReceiveItems]
+    const parsedQuantity = parseInt(quantity) || 0
+    const maxQuantity = newItems[index].remaining_quantity
+    
+    // Ensure quantity doesn't exceed remaining quantity
+    const validQuantity = Math.min(parsedQuantity, maxQuantity)
+    
+    newItems[index] = { 
+      ...newItems[index], 
+      quantity: validQuantity,
+      error: parsedQuantity > maxQuantity ? `Cannot receive more than ${maxQuantity} items` : null
+    }
+    setPartialReceiveItems(newItems)
   }
 
   if (loading) {
@@ -218,10 +302,14 @@ export default function PurchaseOrders() {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         po.status === 'Received' 
                           ? 'bg-green-100 text-green-800'
+                          : po.status === 'Partially Received'
+                          ? 'bg-blue-100 text-blue-800'
                           : 'bg-yellow-100 text-yellow-800'
                       }`}>
                         {po.status === 'Received' ? (
                           <CheckCircle className="h-3 w-3 mr-1" />
+                        ) : po.status === 'Partially Received' ? (
+                          <Package className="h-3 w-3 mr-1" />
                         ) : (
                           <Clock className="h-3 w-3 mr-1" />
                         )}
@@ -243,12 +331,40 @@ export default function PurchaseOrders() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2" onClick={e => e.stopPropagation()}>
                       {po.status === 'Pending' && (
-                        <button
-                          onClick={() => handleReceivePO(po.id)}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleReceivePO(po.id)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Receive Full PO"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handlePartialReceivePO(po.id)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Receive Partial PO"
+                          >
+                            <Package className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      {po.status === 'Partially Received' && (
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleReceivePO(po.id)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Receive Remaining"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handlePartialReceivePO(po.id)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Receive More"
+                          >
+                            <Package className="h-4 w-4" />
+                          </button>
+                        </div>
                       )}
                       {po.status === 'Received' && (
                         <span className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
@@ -415,6 +531,11 @@ export default function PurchaseOrders() {
                     {selectedPO.items.map((item, index) => (
                       <div key={index} className="text-sm text-gray-900">
                         {item.item.name} - Qty: {item.quantity} @ {formatINR(item.unit_price)}
+                        {item.received_quantity > 0 && (
+                          <span className="text-blue-600 ml-2">
+                            (Received: {item.received_quantity})
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -433,13 +554,21 @@ export default function PurchaseOrders() {
                 >
                   Close
                 </button>
-                {selectedPO.status === 'Pending' && (
-                  <button
-                    onClick={() => handleReceivePO(selectedPO.id)}
-                    className="btn-primary flex-1"
-                  >
-                    Mark as Received
-                  </button>
+                {(selectedPO.status === 'Pending' || selectedPO.status === 'Partially Received') && (
+                  <div className="flex space-x-2 flex-1">
+                    <button
+                      onClick={() => handleReceivePO(selectedPO.id)}
+                      className="btn-primary flex-1"
+                    >
+                      {selectedPO.status === 'Pending' ? 'Mark as Received' : 'Receive Remaining'}
+                    </button>
+                    <button
+                      onClick={() => handlePartialReceivePO(selectedPO.id)}
+                      className="btn-secondary flex-1"
+                    >
+                      Receive Partial
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -540,6 +669,150 @@ export default function PurchaseOrders() {
                 </button>
                 <button
                   onClick={() => setShowInvoiceModal(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Partial Receive Modal */}
+      {showPartialReceiveModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-[800px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Receive Partial Purchase Order</h3>
+              
+              <div className="space-y-6">
+                {/* Items Section */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Items to Receive</h4>
+                  <div className="space-y-3">
+                    {partialReceiveItems.map((item, index) => (
+                      <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex justify-between items-center mb-2">
+                          <h5 className="font-medium text-gray-900">{item.item_name}</h5>
+                          <span className="text-sm text-gray-500">
+                            Ordered: {item.ordered_quantity} | Received: {item.received_quantity} | Remaining: {item.remaining_quantity}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-3">
+                            <label className="text-sm font-medium text-gray-700">Quantity to Receive:</label>
+                            <input
+                              type="number"
+                              min="0"
+                              max={item.remaining_quantity}
+                              value={item.quantity}
+                              onChange={(e) => updatePartialReceiveItem(index, e.target.value)}
+                              className={`input-field w-24 ${item.error ? 'border-red-500' : ''}`}
+                              placeholder="0"
+                            />
+                            <span className="text-sm text-gray-500">/ {item.remaining_quantity}</span>
+                          </div>
+                          {item.error && (
+                            <div className="text-red-600 text-sm flex items-center">
+                              <span className="mr-1">⚠</span>
+                              {item.error}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Invoices Section */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Invoice Details (Optional)</h4>
+                  <div className="space-y-4 max-h-48 overflow-y-auto">
+                    {invoices.map((invoice, index) => (
+                      <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex justify-between items-center mb-3">
+                          <h5 className="font-medium text-gray-900">Invoice {index + 1}</h5>
+                          {invoices.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeInvoice(index)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
+                            <input
+                              type="text"
+                              value={invoice.invoice_number}
+                              onChange={e => updateInvoice(index, 'invoice_number', e.target.value)}
+                              className="input-field w-full"
+                              placeholder="Invoice Number"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Date</label>
+                            <input
+                              type="datetime-local"
+                              value={invoice.invoice_date}
+                              onChange={e => updateInvoice(index, 'invoice_date', e.target.value)}
+                              className="input-field w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                            <input
+                              type="number"
+                              value={invoice.amount}
+                              onChange={e => updateInvoice(index, 'amount', parseFloat(e.target.value) || 0)}
+                              className="input-field w-full"
+                              placeholder="0.00"
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                            <input
+                              type="text"
+                              value={invoice.description}
+                              onChange={e => updateInvoice(index, 'description', e.target.value)}
+                              className="input-field w-full"
+                              placeholder="Description"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      onClick={addInvoice}
+                      className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                    >
+                      + Add Another Invoice
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={confirmPartialReceivePO}
+                  className="btn-primary flex-1"
+                  disabled={!partialReceiveItems.some(item => item.quantity > 0) || partialReceiveItems.some(item => item.error)}
+                >
+                  Confirm Partial Receipt
+                </button>
+                <button
+                  onClick={() => setShowPartialReceiveModal(false)}
                   className="btn-secondary flex-1"
                 >
                   Cancel

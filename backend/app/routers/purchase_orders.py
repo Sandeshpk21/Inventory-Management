@@ -33,6 +33,14 @@ def receive_purchase_order(po_id: int, data: schemas.PurchaseOrderReceive = Body
         raise HTTPException(status_code=404, detail="Purchase order not found or already received")
     return po
 
+@router.patch("/{po_id}/receive-partial", response_model=schemas.PurchaseOrder)
+def receive_purchase_order_partial(po_id: int, data: schemas.PurchaseOrderPartialReceive = Body(...), db: Session = Depends(get_db)):
+    """Receive partial quantities for a purchase order"""
+    po = crud.receive_purchase_order_partial(db=db, po_id=po_id, received_items=data.items, invoices=data.invoices)
+    if po is None:
+        raise HTTPException(status_code=404, detail="Purchase order not found or already fully received")
+    return po
+
 # Invoice endpoints
 @router.get("/{po_id}/invoices", response_model=List[schemas.Invoice])
 def get_purchase_order_invoices(po_id: int, db: Session = Depends(get_db)):

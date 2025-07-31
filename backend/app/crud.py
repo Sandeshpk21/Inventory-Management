@@ -141,6 +141,9 @@ def receive_purchase_order(db: Session, po_id: int, invoices: List[schemas.Invoi
             stock = models.Stock(item_id=po_item.item_id, current_quantity=po_item.quantity)
             db.add(stock)
         
+        # Mark as fully received
+        po_item.received_quantity = po_item.quantity
+        
         # Create transaction
         transaction = models.Transaction(
             item_id=po_item.item_id,
@@ -149,6 +152,88 @@ def receive_purchase_order(db: Session, po_id: int, invoices: List[schemas.Invoi
             purchase_order_id=po_id
         )
         db.add(transaction)
+    
+    db.commit()
+    db.refresh(db_po)
+    return db_po
+
+def receive_purchase_order_partial(db: Session, po_id: int, received_items: List[dict], invoices: List[schemas.InvoiceCreate] = None):
+    """Receive partial quantities for a purchase order"""
+    db_po = get_purchase_order(db, po_id)
+    if not db_po or db_po.status == "Received":
+        return None
+    
+    # Create invoices if provided
+    if invoices:
+        for invoice_data in invoices:
+            db_invoice = models.Invoice(
+                purchase_order_id=po_id,
+                invoice_number=invoice_data.invoice_number,
+                invoice_date=invoice_data.invoice_date,
+                amount=invoice_data.amount,
+                description=invoice_data.description
+            )
+            db.add(db_invoice)
+    
+    # Process received items
+    for received_item in received_items:
+        item_id = received_item.get('item_id')
+        quantity = received_item.get('quantity', 0)
+        
+        if quantity <= 0:
+            continue
+            
+        # Find the PO item
+        po_item = db.query(models.PurchaseOrderItem).filter(
+            models.PurchaseOrderItem.purchase_order_id == po_id,
+            models.PurchaseOrderItem.item_id == item_id
+        ).first()
+        
+        if not po_item:
+            continue
+            
+        # Check if we can receive this quantity
+        remaining_quantity = po_item.quantity - po_item.received_quantity
+        quantity_to_receive = min(quantity, remaining_quantity)
+        
+        if quantity_to_receive <= 0:
+            continue
+            
+        # Update received quantity
+        po_item.received_quantity += quantity_to_receive
+        
+        # Update stock
+        stock = db.query(models.Stock).filter(models.Stock.item_id == item_id).first()
+        if stock:
+            stock.current_quantity += quantity_to_receive
+        else:
+            stock = models.Stock(item_id=item_id, current_quantity=quantity_to_receive)
+            db.add(stock)
+        
+        # Create transaction
+        transaction = models.Transaction(
+            item_id=item_id,
+            quantity=quantity_to_receive,
+            action="Purchase",
+            purchase_order_id=po_id
+        )
+        db.add(transaction)
+    
+    # Update PO status based on received quantities
+    all_items_received = True
+    any_items_received = False
+    
+    for po_item in db_po.items:
+        if po_item.received_quantity > 0:
+            any_items_received = True
+        if po_item.received_quantity < po_item.quantity:
+            all_items_received = False
+    
+    if all_items_received:
+        db_po.status = "Received"
+        db_po.received_at = datetime.now()
+    elif any_items_received:
+        db_po.status = "Partially Received"
     
     db.commit()
     db.refresh(db_po)

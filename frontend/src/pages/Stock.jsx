@@ -14,6 +14,8 @@ export default function Stock() {
     name: '',
     code: '',
     description: '',
+    make: '',
+    model_number: '',
     unit_price: 0,
     minimum_stock: 0
   })
@@ -49,6 +51,8 @@ export default function Stock() {
         name: '',
         code: '',
         description: '',
+        make: '',
+        model_number: '',
         unit_price: 0,
         minimum_stock: 0
       })
@@ -151,7 +155,8 @@ export default function Stock() {
     return (
       stockItem.item.name.toLowerCase().includes(q) ||
       stockItem.item.code.toLowerCase().includes(q) ||
-      (stockItem.item.description && stockItem.item.description.toLowerCase().includes(q))
+      (stockItem.item.make && stockItem.item.make.toLowerCase().includes(q)) ||
+      (stockItem.item.model_number && stockItem.item.model_number.toLowerCase().includes(q))
     )
   })
 
@@ -206,7 +211,7 @@ export default function Stock() {
           </span>
           <input
             type="text"
-            placeholder="Search by name, code, or description..."
+            placeholder="Search by name, code, make, or model..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input-field pl-10"
@@ -225,6 +230,9 @@ export default function Stock() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Item
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Make/Model
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Current Stock
@@ -259,6 +267,25 @@ export default function Stock() {
                           {stockItem.item.description && (
                             <div className="text-sm text-gray-500">
                               {stockItem.item.description}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          {stockItem.item.make && (
+                            <div className="text-sm font-medium text-gray-900">
+                              {stockItem.item.make}
+                            </div>
+                          )}
+                          {stockItem.item.model_number && (
+                            <div className="text-sm text-gray-500">
+                              {stockItem.item.model_number}
+                            </div>
+                          )}
+                          {!stockItem.item.make && !stockItem.item.model_number && (
+                            <div className="text-sm text-gray-400 italic">
+                              Not specified
                             </div>
                           )}
                         </div>
@@ -335,6 +362,26 @@ export default function Stock() {
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     className="input-field"
                     rows="3"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Make</label>
+                  <input
+                    type="text"
+                    value={formData.make}
+                    onChange={(e) => setFormData(prev => ({ ...prev, make: e.target.value }))}
+                    className="input-field"
+                    placeholder="e.g., Schneider Electric"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Model Number</label>
+                  <input
+                    type="text"
+                    value={formData.model_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, model_number: e.target.value }))}
+                    className="input-field"
+                    placeholder="e.g., IC60N 32A"
                   />
                 </div>
                 <div>

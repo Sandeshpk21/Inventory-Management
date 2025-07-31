@@ -31,6 +31,8 @@ class Item(Base):
     name = Column(String, index=True)
     code = Column(String, unique=True, index=True)
     description = Column(Text, nullable=True)
+    make = Column(String, nullable=True)
+    model_number = Column(String, nullable=True)
     unit_price = Column(Float, default=0.0)
     minimum_stock = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')))
@@ -48,7 +50,7 @@ class PurchaseOrder(Base):
     po_number = Column(String, unique=True, index=True, default=generate_po_number)
     supplier_name = Column(String)
     expected_delivery_date = Column(DateTime)
-    status = Column(String, default="Pending")  # Pending, Received
+    status = Column(String, default="Pending")  # Pending, Partially Received, Received, Cancelled
     total_amount = Column(Float, default=0.0)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(pytz.timezone('Asia/Kolkata')))
     received_at = Column(DateTime(timezone=True), nullable=True)
@@ -78,7 +80,8 @@ class PurchaseOrderItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     purchase_order_id = Column(Integer, ForeignKey("purchase_orders.id"))
     item_id = Column(Integer, ForeignKey("items.id"))
-    quantity = Column(Integer)
+    quantity = Column(Integer)  # Total ordered quantity
+    received_quantity = Column(Integer, default=0)  # Quantity received so far
     unit_price = Column(Float)
     total_price = Column(Float)
     

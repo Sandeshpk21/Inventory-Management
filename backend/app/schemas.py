@@ -45,6 +45,8 @@ class ItemBase(BaseModel):
     name: str
     code: str
     description: Optional[str] = None
+    make: Optional[str] = None
+    model_number: Optional[str] = None
     unit_price: float = 0.0
     minimum_stock: int = 0
 
@@ -88,6 +90,7 @@ class PurchaseOrderItemCreate(PurchaseOrderItemBase):
 
 class PurchaseOrderItem(PurchaseOrderItemBase):
     id: int
+    received_quantity: int = 0
     total_price: float
     item: Item
     
@@ -107,6 +110,10 @@ class PurchaseOrderUpdate(BaseModel):
 
 class PurchaseOrderReceive(BaseModel):
     invoices: List[InvoiceCreate]
+
+class PurchaseOrderPartialReceive(BaseModel):
+    items: List[dict]  # List of {item_id: int, quantity: int}
+    invoices: List[InvoiceCreate] = []
 
 class PurchaseOrder(PurchaseOrderBase):
     id: int

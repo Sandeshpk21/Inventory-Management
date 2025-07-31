@@ -96,7 +96,7 @@ async def import_items_from_csv(file: UploadFile = File(...), db: Session = Depe
         
         # Expected columns
         required_columns = ['name', 'code']
-        optional_columns = ['description', 'unit_price', 'minimum_stock', 'current_quantity']
+        optional_columns = ['description', 'make', 'model_number', 'unit_price', 'minimum_stock', 'current_quantity']
         
         # Validate headers
         if not all(col in csv_reader.fieldnames for col in required_columns):
@@ -119,6 +119,8 @@ async def import_items_from_csv(file: UploadFile = File(...), db: Session = Depe
                     'name': row['name'].strip(),
                     'code': row['code'].strip(),
                     'description': row.get('description', '').strip() or None,
+                    'make': row.get('make', '').strip() or None,
+                    'model_number': row.get('model_number', '').strip() or None,
                     'unit_price': float(row.get('unit_price', 0)) if row.get('unit_price') else 0.0,
                     'minimum_stock': int(row.get('minimum_stock', 0)) if row.get('minimum_stock') else 0
                 }

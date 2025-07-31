@@ -23,6 +23,7 @@ export const purchaseOrdersAPI = {
   getById: (id) => api.get(`/purchase-orders/${id}`),
   create: (data) => api.post('/purchase-orders/', data),
   receive: (id, invoices) => api.patch(`/purchase-orders/${id}/receive`, { invoices }),
+  receivePartial: (id, data) => api.patch(`/purchase-orders/${id}/receive-partial`, data),
   getInvoices: (poId) => api.get(`/purchase-orders/${poId}/invoices`),
   addInvoice: (poId, invoice) => api.post(`/purchase-orders/${poId}/invoices`, invoice),
   updateInvoice: (invoiceId, invoice) => api.put(`/purchase-orders/invoices/${invoiceId}`, invoice),
