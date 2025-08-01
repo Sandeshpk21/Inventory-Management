@@ -142,16 +142,16 @@ export default function Requirements() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Requirements</h1>
-          <p className="text-gray-600">Manage project requirements and issue items</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Requirements</h1>
+          <p className="text-gray-600 text-sm lg:text-base">Manage project requirements and issue items</p>
         </div>
         {user?.role === 'admin' && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-primary flex items-center"
+            className="btn-primary flex items-center text-sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Requirement
@@ -159,54 +159,34 @@ export default function Requirements() {
         )}
       </div>
 
-      {successMsg && <div className="text-green-600 font-medium">{successMsg}</div>}
-      {errorMsg && <div className="text-red-600 font-medium">{errorMsg}</div>}
+      {successMsg && <div className="text-green-600 font-medium text-sm">{successMsg}</div>}
+      {errorMsg && <div className="text-red-600 font-medium text-sm">{errorMsg}</div>}
 
       {/* Requirements List */}
       <div className="card">
         {requirements.length === 0 ? (
           <p className="text-gray-500 text-center py-8">No requirements found</p>
         ) : (
-          <div className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Project Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stock Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {requirements.map((requirement) => {
-                  const stockStatus = getStockStatus(requirement)
-                  return (
-                    <tr key={requirement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => { setSelectedRequirement(requirement); setShowDetailsModal(true); }}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {requirement.project_name}
-                          </div>
-                          {requirement.description && (
-                            <div className="text-sm text-gray-500">
-                              {requirement.description}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {requirements.map((requirement) => {
+                const stockStatus = getStockStatus(requirement)
+                return (
+                  <div key={requirement.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                          {requirement.project_name}
+                        </h3>
+                        {requirement.description && (
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                            {requirement.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2 ml-2">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           requirement.status === 'Completed' 
                             ? 'bg-green-100 text-green-800'
                             : 'bg-blue-100 text-blue-800'
@@ -218,22 +198,22 @@ export default function Requirements() {
                           )}
                           {requirement.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.color}`}>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${stockStatus.color}`}>
                           <Package className="h-3 w-3 mr-1" />
                           {stockStatus.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">
                         {format(new Date(requirement.created_at), 'MMM dd, yyyy')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2" onClick={e => e.stopPropagation()}>
+                      </span>
+                      <div className="flex gap-2">
                         {requirement.status === 'Active' && stockStatus.allAvailable && (
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
-                              // Fetch latest requirement details and open issue modal
                               const updated = await requirementsAPI.getById(requirement.id)
                               setIssueRequirement(updated.data)
                               setShowIssueModal(true)
@@ -244,16 +224,114 @@ export default function Requirements() {
                           </button>
                         )}
                         {requirement.status === 'Completed' && (
-                          <span className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
-                            <Package className="h-4 w-4 mr-1" />All Set!
+                          <span className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold text-xs">
+                            <Package className="h-3 w-3 mr-1" />All Set!
                           </span>
                         )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-gray-100">
+                      <button
+                        onClick={() => { setSelectedRequirement(requirement); setShowDetailsModal(true); }}
+                        className="text-primary-600 hover:text-primary-900 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Project Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stock Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {requirements.map((requirement) => {
+                    const stockStatus = getStockStatus(requirement)
+                    return (
+                      <tr key={requirement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => { setSelectedRequirement(requirement); setShowDetailsModal(true); }}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {requirement.project_name}
+                            </div>
+                            {requirement.description && (
+                              <div className="text-sm text-gray-500">
+                                {requirement.description}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            requirement.status === 'Completed' 
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {requirement.status === 'Completed' ? (
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                            ) : (
+                              <Clock className="h-3 w-3 mr-1" />
+                            )}
+                            {requirement.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stockStatus.color}`}>
+                            <Package className="h-3 w-3 mr-1" />
+                            {stockStatus.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {format(new Date(requirement.created_at), 'MMM dd, yyyy')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2" onClick={e => e.stopPropagation()}>
+                          {requirement.status === 'Active' && stockStatus.allAvailable && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const updated = await requirementsAPI.getById(requirement.id)
+                                setIssueRequirement(updated.data)
+                                setShowIssueModal(true)
+                              }}
+                              className="btn-primary px-3 py-1 text-xs"
+                            >
+                              Issue Items
+                            </button>
+                          )}
+                          {requirement.status === 'Completed' && (
+                            <span className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
+                              <Package className="h-4 w-4 mr-1" />All Set!
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -261,7 +339,7 @@ export default function Requirements() {
       {/* Create Requirement Modal */}
       {user?.role === 'admin' && showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Create Requirement</h3>
               <form onSubmit={handleCreateRequirement} className="space-y-4">
@@ -286,50 +364,62 @@ export default function Requirements() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Items Needed</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Items Needed</label>
                   {formData.items.map((item, index) => (
-                    <div key={index} className="flex space-x-2 mb-2">
-                      <select
-                        required
-                        value={item.item_id}
-                        onChange={(e) => updateFormItem(index, 'item_id', e.target.value)}
-                        className="input-field flex-1"
-                      >
-                        <option value="">Select Item</option>
-                        {items.map((i) => (
-                          <option key={i.id} value={i.id}>{i.name} ({i.code})</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        required
-                        min="1"
-                        value={item.quantity_needed}
-                        onChange={(e) => updateFormItem(index, 'quantity_needed', parseInt(e.target.value))}
-                        className="input-field w-20"
-                      />
-                      {formData.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItemFromForm(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          ×
-                        </button>
-                      )}
+                    <div key={index} className="border border-gray-200 rounded-lg p-3 mb-3 bg-gray-50">
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                          <select
+                            required
+                            value={item.item_id}
+                            onChange={(e) => updateFormItem(index, 'item_id', e.target.value)}
+                            className="input-field w-full"
+                          >
+                            <option value="">Select Item</option>
+                            {items.map((i) => (
+                              <option key={i.id} value={i.id}>{i.name} ({i.code})</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Quantity Needed</label>
+                          <input
+                            type="number"
+                            placeholder="Qty"
+                            required
+                            min="1"
+                            value={item.quantity_needed}
+                            onChange={(e) => updateFormItem(index, 'quantity_needed', parseInt(e.target.value))}
+                            className="input-field w-full"
+                          />
+                        </div>
+                        
+                        {formData.items.length > 1 && (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => removeItemFromForm(index)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded"
+                            >
+                              Remove Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                   <button
                     type="button"
                     onClick={addItemToForm}
-                    className="text-primary-600 hover:text-primary-800 text-sm"
+                    className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                   >
                     + Add Item
                   </button>
                 </div>
 
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button type="submit" className="btn-primary flex-1">
                     Create Requirement
                   </button>
@@ -350,7 +440,7 @@ export default function Requirements() {
       {/* Issue Items Modal */}
       {showIssueModal && issueRequirement && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Issue Items</h3>
               <div className="space-y-3">
@@ -372,15 +462,14 @@ export default function Requirements() {
                   <span className="text-sm font-medium text-gray-700">Items:</span>
                   <div className="mt-2 space-y-1">
                     {issueRequirement.items.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between text-sm text-gray-900">
-                        <span>{item.item.name} - Needed: {item.quantity_needed}, Issued: {item.quantity_issued}</span>
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-900 gap-2">
+                        <span className="flex-1">{item.item.name} - Needed: {item.quantity_needed}, Issued: {item.quantity_issued}</span>
                         {item.quantity_issued < item.quantity_needed && ((item.ordered && item.item.stock && item.item.stock.current_quantity >= (item.quantity_needed - item.quantity_issued)) || !item.ordered) && (
                           <button
-                            className="btn-primary px-2 py-1 text-xs ml-2"
+                            className="btn-primary px-2 py-1 text-xs"
                             onClick={async () => {
                               try {
                                 await requirementsAPI.issueItem(issueRequirement.id, item.item.id)
-                                // Refresh requirement details
                                 const updated = await requirementsAPI.getById(issueRequirement.id)
                                 setIssueRequirement(updated.data)
                                 fetchRequirements()
@@ -394,10 +483,10 @@ export default function Requirements() {
                           </button>
                         )}
                         {item.quantity_issued >= item.quantity_needed && (
-                          <span className="text-green-600 ml-2">Issued</span>
+                          <span className="text-green-600">Issued</span>
                         )}
                         {item.ordered && item.quantity_issued < item.quantity_needed && !(item.item.stock && item.item.stock.current_quantity >= (item.quantity_needed - item.quantity_issued)) && (
-                          <span className="text-yellow-600 ml-2">Ordered</span>
+                          <span className="text-yellow-600">Ordered</span>
                         )}
                       </div>
                     ))}
@@ -420,7 +509,7 @@ export default function Requirements() {
       {/* Requirement Details Modal */}
       {showDetailsModal && selectedRequirement && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Requirement Details</h3>
               <div className="space-y-3">
@@ -442,15 +531,14 @@ export default function Requirements() {
                   <span className="text-sm font-medium text-gray-700">Items:</span>
                   <div className="mt-2 space-y-1">
                     {selectedRequirement.items.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between text-sm text-gray-900">
-                        <span>{item.item.name} - Needed: {item.quantity_needed}, Issued: {item.quantity_issued}</span>
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-900 gap-2">
+                        <span className="flex-1">{item.item.name} - Needed: {item.quantity_needed}, Issued: {item.quantity_issued}</span>
                         {item.quantity_issued < item.quantity_needed && !item.ordered && (
                           <button
-                            className="btn-primary px-2 py-1 text-xs ml-2"
+                            className="btn-primary px-2 py-1 text-xs"
                             onClick={async () => {
                               try {
                                 await requirementsAPI.issueItem(selectedRequirement.id, item.item.id)
-                                // Refresh requirement details
                                 const updated = await requirementsAPI.getById(selectedRequirement.id)
                                 setSelectedRequirement(updated.data)
                                 fetchRequirements()
@@ -464,10 +552,10 @@ export default function Requirements() {
                           </button>
                         )}
                         {item.quantity_issued >= item.quantity_needed && (
-                          <span className="text-green-600 ml-2">Issued</span>
+                          <span className="text-green-600">Issued</span>
                         )}
                         {item.ordered && item.quantity_issued < item.quantity_needed && (
-                          <span className="text-yellow-600 ml-2">Ordered</span>
+                          <span className="text-yellow-600">Ordered</span>
                         )}
                       </div>
                     ))}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { purchaseOrdersAPI, stockAPI } from '../services/api'
-import { Plus, Package, CheckCircle, Clock, Eye } from 'lucide-react'
+import { Plus, Package, CheckCircle, Clock, Eye, Download, Upload } from 'lucide-react'
 import { format } from 'date-fns'
 
 // Helper for INR currency
@@ -236,15 +236,15 @@ export default function PurchaseOrders() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
-          <p className="text-gray-600">Manage purchase orders and track deliveries</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Purchase Orders</h1>
+          <p className="text-gray-600 text-sm lg:text-base">Manage purchase orders and track deliveries</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center"
+          className="btn-primary flex items-center text-sm"
         >
           <Plus className="h-4 w-4 mr-2" />
           Create PO
@@ -256,7 +256,121 @@ export default function PurchaseOrders() {
         {purchaseOrders.length === 0 ? (
           <p className="text-gray-500 text-center py-8">No purchase orders found</p>
         ) : (
-          <div className="overflow-hidden">
+          <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+              {purchaseOrders.map((po) => (
+                <div key={po.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {po.po_number.startsWith('PO-') ? po.po_number : `PO-${po.po_number}`}
+                      </h3>
+                      <p className="text-xs text-gray-500">{po.supplier_name}</p>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
+                      po.status === 'Received' 
+                        ? 'bg-green-100 text-green-800'
+                        : po.status === 'Partially Received'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {po.status === 'Received' ? (
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                      ) : po.status === 'Partially Received' ? (
+                        <Package className="h-3 w-3 mr-1" />
+                      ) : (
+                        <Clock className="h-3 w-3 mr-1" />
+                      )}
+                      {po.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-500 text-xs">Expected Delivery</p>
+                      <p className="font-medium">{formatIST(po.expected_delivery_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Total Amount</p>
+                      <p className="font-medium">{formatINR(po.total_amount)}</p>
+                    </div>
+                  </div>
+                  
+                  {po.status === 'Received' && po.invoices && po.invoices.length > 0 && (
+                    <div>
+                      <p className="text-gray-500 text-xs mb-1">Invoices:</p>
+                      <div className="space-y-1">
+                        {po.invoices.map((invoice, idx) => (
+                          <div key={idx} className="text-xs text-gray-900">
+                            {invoice.invoice_number} ({formatINR(invoice.amount)})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => { setSelectedPO(po); setShowDetailsModal(true); }}
+                      className="text-primary-600 hover:text-primary-900 text-sm font-medium"
+                    >
+                      View Details
+                    </button>
+                    <div className="flex gap-2">
+                      {po.status === 'Pending' && (
+                        <>
+                          <button
+                            onClick={() => handleReceivePO(po.id)}
+                            className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors text-xs font-medium"
+                            title="Receive Full PO"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Receive All
+                          </button>
+                          <button
+                            onClick={() => handlePartialReceivePO(po.id)}
+                            className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors text-xs font-medium"
+                            title="Receive Partial PO"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Receive Partial
+                          </button>
+                        </>
+                      )}
+                      {po.status === 'Partially Received' && (
+                        <>
+                          <button
+                            onClick={() => handleReceivePO(po.id)}
+                            className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors text-xs font-medium"
+                            title="Receive Remaining"
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Receive Remaining
+                          </button>
+                          <button
+                            onClick={() => handlePartialReceivePO(po.id)}
+                            className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors text-xs font-medium"
+                            title="Receive More"
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Receive More
+                          </button>
+                        </>
+                      )}
+                      {po.status === 'Received' && (
+                        <span className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold text-xs">
+                          <Package className="h-3 w-3 mr-1" />All Set!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -330,42 +444,46 @@ export default function PurchaseOrders() {
                       ) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2" onClick={e => e.stopPropagation()}>
-                      {po.status === 'Pending' && (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleReceivePO(po.id)}
-                            className="text-green-600 hover:text-green-900"
-                            title="Receive Full PO"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handlePartialReceivePO(po.id)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Receive Partial PO"
-                          >
-                            <Package className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                      {po.status === 'Partially Received' && (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleReceivePO(po.id)}
-                            className="text-green-600 hover:text-green-900"
-                            title="Receive Remaining"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handlePartialReceivePO(po.id)}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Receive More"
-                          >
-                            <Package className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
+                                              {po.status === 'Pending' && (
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => handleReceivePO(po.id)}
+                              className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors text-xs font-medium"
+                              title="Receive Full PO"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Receive All
+                            </button>
+                            <button
+                              onClick={() => handlePartialReceivePO(po.id)}
+                              className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors text-xs font-medium"
+                              title="Receive Partial PO"
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              Receive Partial
+                            </button>
+                          </div>
+                        )}
+                        {po.status === 'Partially Received' && (
+                          <div className="flex flex-col space-y-1">
+                            <button
+                              onClick={() => handleReceivePO(po.id)}
+                              className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-800 rounded-md hover:bg-green-200 transition-colors text-xs font-medium"
+                              title="Receive Remaining"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Receive Remaining
+                            </button>
+                            <button
+                              onClick={() => handlePartialReceivePO(po.id)}
+                              className="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors text-xs font-medium"
+                              title="Receive More"
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              Receive More
+                            </button>
+                          </div>
+                        )}
                       {po.status === 'Received' && (
                         <span className="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">
                           <Package className="h-4 w-4 mr-1" />All Set!
@@ -376,6 +494,7 @@ export default function PurchaseOrders() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>
@@ -383,7 +502,7 @@ export default function PurchaseOrders() {
       {/* Create PO Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Create Purchase Order</h3>
               <form onSubmit={handleCreatePO} className="space-y-4">
@@ -409,53 +528,65 @@ export default function PurchaseOrders() {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Items</label>
-                  <div className="grid grid-cols-12 gap-2 mb-1">
-                    <div className="col-span-5"></div>
-                    <div className="col-span-3 text-xs text-gray-500 font-medium">Quantity</div>
-                    <div className="col-span-3 text-xs text-gray-500 font-medium">Unit Price</div>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Items</label>
                   {formData.items.map((item, index) => (
-                    <div key={index} className="flex space-x-2 mb-2">
-                      <select
-                        required
-                        value={item.item_id}
-                        onChange={(e) => updateFormItem(index, 'item_id', e.target.value)}
-                        className="input-field flex-1"
-                      >
-                        <option value="">Select Item</option>
-                        {items.map((i) => (
-                          <option key={i.id} value={i.id}>{i.name} ({i.code})</option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        placeholder="Qty"
-                        required
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateFormItem(index, 'quantity', parseInt(e.target.value))}
-                        className="input-field w-20"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Price"
-                        required
-                        min="0"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => updateFormItem(index, 'unit_price', parseFloat(e.target.value))}
-                        className="input-field w-24"
-                      />
-                      {formData.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItemFromForm(index)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          ×
-                        </button>
-                      )}
+                    <div key={index} className="border border-gray-200 rounded-lg p-3 mb-3 bg-gray-50">
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                          <select
+                            required
+                            value={item.item_id}
+                            onChange={(e) => updateFormItem(index, 'item_id', e.target.value)}
+                            className="input-field w-full"
+                          >
+                            <option value="">Select Item</option>
+                            {items.map((i) => (
+                              <option key={i.id} value={i.id}>{i.name} ({i.code})</option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Quantity</label>
+                            <input
+                              type="number"
+                              placeholder="Qty"
+                              required
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateFormItem(index, 'quantity', parseInt(e.target.value))}
+                              className="input-field w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Unit Price</label>
+                            <input
+                              type="number"
+                              placeholder="Price"
+                              required
+                              min="0"
+                              step="0.01"
+                              value={item.unit_price}
+                              onChange={(e) => updateFormItem(index, 'unit_price', parseFloat(e.target.value))}
+                              className="input-field w-full"
+                            />
+                          </div>
+                        </div>
+                        
+                        {formData.items.length > 1 && (
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => removeItemFromForm(index)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded"
+                            >
+                              Remove Item
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                   <button
@@ -467,7 +598,7 @@ export default function PurchaseOrders() {
                   </button>
                 </div>
 
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button type="submit" className="btn-primary flex-1">
                     Create PO
                   </button>
@@ -488,7 +619,7 @@ export default function PurchaseOrders() {
       {/* PO Details Modal */}
       {showDetailsModal && selectedPO && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Purchase Order Details</h3>
               <div className="space-y-3">
@@ -547,7 +678,7 @@ export default function PurchaseOrders() {
                   </p>
                 </div>
               </div>
-              <div className="mt-6 flex space-x-2">
+              <div className="mt-6 flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className="btn-secondary flex-1"
@@ -555,7 +686,7 @@ export default function PurchaseOrders() {
                   Close
                 </button>
                 {(selectedPO.status === 'Pending' || selectedPO.status === 'Partially Received') && (
-                  <div className="flex space-x-2 flex-1">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-1">
                     <button
                       onClick={() => handleReceivePO(selectedPO.id)}
                       className="btn-primary flex-1"
@@ -579,7 +710,7 @@ export default function PurchaseOrders() {
       {/* Invoice Modal */}
       {showInvoiceModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-lg shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Enter Invoice Details</h3>
               
@@ -599,7 +730,7 @@ export default function PurchaseOrders() {
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
                         <input
@@ -659,7 +790,7 @@ export default function PurchaseOrders() {
                 </button>
               </div>
               
-              <div className="flex space-x-3 mt-6">
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   onClick={confirmReceivePO}
                   className="btn-primary flex-1"
@@ -682,7 +813,7 @@ export default function PurchaseOrders() {
       {/* Partial Receive Modal */}
       {showPartialReceiveModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-[800px] shadow-lg rounded-md bg-white">
+          <div className="relative top-4 mx-auto p-4 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Receive Partial Purchase Order</h3>
               
@@ -693,14 +824,14 @@ export default function PurchaseOrders() {
                   <div className="space-y-3">
                     {partialReceiveItems.map((item, index) => (
                       <div key={index} className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex justify-between items-center mb-2">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2">
                           <h5 className="font-medium text-gray-900">{item.item_name}</h5>
                           <span className="text-sm text-gray-500">
                             Ordered: {item.ordered_quantity} | Received: {item.received_quantity} | Remaining: {item.remaining_quantity}
                           </span>
                         </div>
                         <div className="space-y-2">
-                          <div className="flex items-center space-x-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <label className="text-sm font-medium text-gray-700">Quantity to Receive:</label>
                             <input
                               type="number"
@@ -728,7 +859,7 @@ export default function PurchaseOrders() {
                 {/* Invoices Section */}
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">Invoice Details (Optional)</h4>
-                  <div className="space-y-4 max-h-48 overflow-y-auto">
+                  <div className="space-y-4">
                     {invoices.map((invoice, index) => (
                       <div key={index} className="border rounded-lg p-4 bg-gray-50">
                         <div className="flex justify-between items-center mb-3">
@@ -737,14 +868,14 @@ export default function PurchaseOrders() {
                             <button
                               type="button"
                               onClick={() => removeInvoice(index)}
-                              className="text-red-600 hover:text-red-800 text-sm"
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
                             >
                               Remove
                             </button>
                           )}
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-3">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Invoice Number</label>
                             <input
@@ -803,7 +934,7 @@ export default function PurchaseOrders() {
                 </div>
               </div>
               
-              <div className="flex space-x-3 mt-6">
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   onClick={confirmPartialReceivePO}
                   className="btn-primary flex-1"

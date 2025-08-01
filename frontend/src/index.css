@@ -18,10 +18,95 @@
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+    @apply bg-white rounded-lg shadow-md p-4 lg:p-6;
   }
   
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm lg:text-base;
+  }
+
+  /* Mobile-specific utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Improved mobile touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Mobile-friendly modal positioning */
+  .modal-mobile {
+    @apply relative top-4 mx-auto p-4 border w-11/12 max-w-md shadow-lg rounded-md bg-white;
+  }
+
+  /* Responsive text utilities */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  .text-responsive-base {
+    @apply text-sm lg:text-base;
+  }
+
+  .text-responsive-lg {
+    @apply text-base lg:text-lg;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg lg:text-xl;
+  }
+
+  .text-responsive-2xl {
+    @apply text-xl lg:text-2xl;
+  }
+
+  .text-responsive-3xl {
+    @apply text-2xl lg:text-3xl;
+  }
+
+  /* Mobile-friendly spacing */
+  .space-y-mobile {
+    @apply space-y-4 lg:space-y-6;
+  }
+
+  .p-mobile {
+    @apply p-4 lg:p-6;
+  }
+
+  .px-mobile {
+    @apply px-4 lg:px-6;
+  }
+
+  .py-mobile {
+    @apply py-4 lg:py-6;
+  }
+
+  /* Mobile-friendly grid */
+  .grid-mobile {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6;
+  }
+
+  /* Mobile-friendly flex */
+  .flex-mobile {
+    @apply flex flex-col lg:flex-row;
+  }
+
+  .flex-mobile-center {
+    @apply flex flex-col lg:flex-row lg:items-center;
+  }
+
+  .flex-mobile-between {
+    @apply flex flex-col lg:flex-row lg:justify-between lg:items-center;
   }
 } 
